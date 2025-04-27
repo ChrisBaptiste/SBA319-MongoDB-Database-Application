@@ -1,7 +1,7 @@
 // server/routes/savedTrips.js
 const express = require('express');
 const router = express.Router();
-const SavedTrip = require('../models/SavedTrip.js'); 
+const SavedTrip = require('../models/SavedTrip.js');
 const User = require('../models/User.js'); // Requires to verify if user exists
 const mongoose = require('mongoose'); // Required for validating ObjectId
 
@@ -17,7 +17,7 @@ router.post('/', async (req, res) => {
 
     // Basic Validation to check required fields
     if (!userId || !city || !country || price === undefined || lat === undefined || lon === undefined) {
-         return res.status(400).json({ message: 'Missing required fields: userId, city, country, price, lat, lon are required.' });
+        return res.status(400).json({ message: 'Missing required fields: userId, city, country, price, lat, lon are required.' });
     }
 
     // Validating if userId is a valid MongoDB ObjectId format
@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
     }
 
     try {
-       // Checking if the user exists
+        // Checking if the user exists
         const userExists = await User.findById(userId);
         if (!userExists) {
             return res.status(404).json({ message: 'User not found.' });
@@ -64,11 +64,34 @@ router.post('/', async (req, res) => {
     }
 });
 
-// // GET /api/savedtrips - Get all trips saved by a specific user
-// router.get('/', async (req, res) => {
-//     // Read (all for user) logic here
-//      res.status(501).send('GET /api/savedtrips?userId=... not implemented yet'); 
-// });
+//  GET /api/savedtrips - Get all trips saved by a specific user
+router.get('/', async (req, res) => {
+    const { userId } = req.query; // Get userId from query string
+
+    // Checking if userId was provided
+    if (!userId) {
+        return res.status(400).json({ message: 'User ID query parameter is required.' });
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: 'Invalid User ID format.' });
+    }
+
+    try {
+        // Finding all trips where the user field matches the provided userId
+        const trips = await SavedTrip.find({ user: userId })
+            .sort({ savedAt: -1 }); //  Sorting by newest first
+
+        // Sending the found trips (will be an empty array if none found)
+        res.status(200).json(trips);
+
+    } catch (err) {
+        // Handling potential errors
+        console.error("Error fetching saved trips:", err.message);
+        res.status(500).json({ message: 'Server error while fetching saved trips.' });
+    }
+});
 
 // // GET /api/savedtrips/:id - Get a specific saved trip by its ID
 // router.get('/:id', async (req, res) => {
