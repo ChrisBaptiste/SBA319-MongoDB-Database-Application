@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
 
 
 // --- TODO: API Routes ---
-// app.use('/api/users', require('./routes/users'));
+app.use('/api/users', require('./routes/users'));
 // ... other API routes ...
 
 
