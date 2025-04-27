@@ -74,13 +74,58 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// POST /api/users/login - Log in a user (Implementation next)
+// POST /api/users/login - Log in a user 
 router.post('/login', async (req, res) => {
-    // Login logic will compare provided password with stored hash
-    res.send('User login endpoint'); // Placeholder for now
+    // Destructure request body (allowing login via email or username)
+    const { email, username, password } = req.body;
+
+    // Checking if identifier and password are provided
+    const identifier = email || username; // Use email if provided, otherwise username
+    if (!identifier || !password) {
+        return res.status(400).json({ message: 'Please provide email/username and password' });
+    }
+
+    try {
+        // Finding user by email or username
+        const user = await User.findOne({ $or: [{ email: identifier }, { username: identifier }] });
+
+        // Checking if user exists
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid Credentials' });
+        }
+
+        //  Compare provided password with stored hash
+        // bcrypt.compare handles extracting the salt from the stored hash automatically
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        // Checking if passwords match
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Invalid Credentials' });
+        }
+
+        // Login Successful!
+        // sending back success message and user info (excluding password)
+         const userResponse = {
+             _id: user._id,
+             username: user.username,
+             email: user.email,
+             createdAt: user.createdAt
+         };
+
+        res.status(200).json({
+            message: 'Login successful',
+            user: userResponse
+        });
+
+    } catch (err) {
+        // Handling potential server errors
+        console.error("Login Error:", err.message);
+        res.status(500).json({ message: 'Server error during login' });
+    }
 });
 
-// GET /api/users - Example route to get all users (for admin later, needs authentication)
+
+// GET /api/users - route to get all users 
 router.get('/', async (req, res) => {
      try {
             // Fetching users but excluding the password field from the result
