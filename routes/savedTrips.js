@@ -135,7 +135,7 @@ router.patch('/:id', async (req, res) => {
     const isValidOperation = requestedUpdates.every(update => allowedUpdates.includes(update));
 
     if (!isValidOperation) {
-        // Find which fields are not allowed
+        // Finding which fields are not allowed
         const invalidFields = requestedUpdates.filter(update => !allowedUpdates.includes(update));
         return res.status(400).json({ error: `Invalid updates attempted! Cannot update fields: ${invalidFields.join(', ')}` });
     }
@@ -166,10 +166,30 @@ router.patch('/:id', async (req, res) => {
 });
 
 // // DELETE /api/savedtrips/:id - Delete a specific saved trip
-// router.delete('/:id', async (req, res) => {
-//     // Delete logic here
-//     res.status(501).send('DELETE /api/savedtrips/:id not implemented yet'); // 501 Not Implemented
-// });
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params; // Getting trip ID from URL parameters
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid Trip ID format.' });
+    }
+
+    try {
+        // Finding the trip by ID to delete it
+        const deletedTrip = await SavedTrip.findByIdAndDelete(id);
+
+        // Checking if a trip was actually found and deleted
+        if (!deletedTrip) {
+            return res.status(404).json({ message: 'Saved trip not found.' });
+        }
+
+        res.status(200).json({ message: 'Saved trip deleted successfully.' }); // Send success message
+
+    } catch (err) {
+        console.error("Error deleting saved trip:", err.message);
+        res.status(500).json({ message: 'Server error while deleting trip.' });
+    }
+});
 
 
 // --- Export Router ---
