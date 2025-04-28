@@ -70,7 +70,47 @@ router.post('/', async (req, res) => {
     }
 });
 
+// GET /api/reviews - Get reviews, filtered by location (city/country)
+router.get('/', async (req, res) => {
+    const { city, country, userId } = req.query; // Allows filtering by city/country or userId
 
+    // Building the filter object dynamically based on query parameters
+    let filter = {};
+    if (city) {
+        // Case-insensitive search using regex
+        filter.city = new RegExp(`^${city}$`, 'i'); // Exact match but case-insensitive
+    }
+    if (country) {
+        filter.country = new RegExp(`^${country}$`, 'i'); // Exact match but case-insensitive
+    }
+    if (userId) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+             return res.status(400).json({ message: 'Invalid User ID format provided for filtering.' });
+        }
+        filter.user = userId; 
+    }
+
+    // Checking if at least one valid filter criteria was provided
+     if (Object.keys(filter).length === 0) {
+         // Return error - force client to provide filter
+          return res.status(400).json({ message: 'Please provide filter criteria (e.g., city and country, or userId).' });
+     }
+
+
+    try {
+        // Find reviews matching the filter
+        // Populating the 'user' field, selecting only 'username' and 'id'
+        const reviews = await Review.find(filter)
+                                    .populate('user', 'username _id') // Get associated user's username
+                                    .sort({ createdAt: -1 }); // Sorting by newest reviews first
+
+        res.status(200).json(reviews); // Sending the found reviews
+
+    } catch (err) {
+        console.error("Error fetching reviews:", err.message);
+        res.status(500).json({ message: 'Server error while fetching reviews.' });
+    }
+});
 
 // --- Export Router ---
 module.exports = router;
