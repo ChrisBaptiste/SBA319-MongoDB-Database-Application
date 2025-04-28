@@ -1,7 +1,7 @@
 // server/routes/reviews.js
 const express = require('express');
 const router = express.Router();
-const Review = require('../models/Reviews.js'); 
+const Review = require('../models/Review.js');
 const User = require('../models/User.js');
 const mongoose = require('mongoose');
 
@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
 
     // Validating rating range 
     if (typeof rating !== 'number' || rating < 1 || rating > 5) {
-         return res.status(400).json({ message: 'Rating must be a number between 1 and 5.' });
+        return res.status(400).json({ message: 'Rating must be a number between 1 and 5.' });
     }
 
     try {
@@ -44,7 +44,7 @@ router.post('/', async (req, res) => {
             city,
             country,
             rating,
-            comment 
+            comment
         });
 
         // Save the review to trigger Mongoose validation
@@ -85,24 +85,24 @@ router.get('/', async (req, res) => {
     }
     if (userId) {
         if (!mongoose.Types.ObjectId.isValid(userId)) {
-             return res.status(400).json({ message: 'Invalid User ID format provided for filtering.' });
+            return res.status(400).json({ message: 'Invalid User ID format provided for filtering.' });
         }
-        filter.user = userId; 
+        filter.user = userId;
     }
 
     // Checking if at least one valid filter criteria was provided
-     if (Object.keys(filter).length === 0) {
-         // Return error - force client to provide filter
-          return res.status(400).json({ message: 'Please provide filter criteria (e.g., city and country, or userId).' });
-     }
+    if (Object.keys(filter).length === 0) {
+        // Return error - force client to provide filter
+        return res.status(400).json({ message: 'Please provide filter criteria (e.g., city and country, or userId).' });
+    }
 
 
     try {
-        // Find reviews matching the filter
+        // Finding reviews matching the filter
         // Populating the 'user' field, selecting only 'username' and 'id'
         const reviews = await Review.find(filter)
-                                    .populate('user', 'username _id') // Get associated user's username
-                                    .sort({ createdAt: -1 }); // Sorting by newest reviews first
+            .populate('user', 'username _id') // Get associated user's username
+            .sort({ createdAt: -1 }); // Sorting by newest reviews first
 
         res.status(200).json(reviews); // Sending the found reviews
 
@@ -112,5 +112,31 @@ router.get('/', async (req, res) => {
     }
 });
 
+
+// GET /api/reviews/:id - Get a single review by its ID
+router.get('/:id', async (req, res) => {
+    const { id } = req.params; // Getting review ID from URL
+
+    // Validating ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid Review ID format.' });
+    }
+
+    try {
+        // Finding review by ID to populate user info
+        const review = await Review.findById(id).populate('user', 'username _id');
+
+        // Checking if review exists
+        if (!review) {
+            return res.status(404).json({ message: 'Review not found.' });
+        }
+
+        res.status(200).json(review); // Send the found review
+
+    } catch (err) {
+        console.error("Error fetching single review:", err.message);
+        res.status(500).json({ message: 'Server error while fetching review.' });
+    }
+});
 // --- Export Router ---
 module.exports = router;
