@@ -118,11 +118,52 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// // PATCH /api/savedtrips/:id - Update a specific saved trip (e.g., add notes)
-// router.patch('/:id', async (req, res) => {
-//     // Update logic here
-//     res.status(501).send('PATCH /api/savedtrips/:id not implemented yet'); // 501 Not Implemented
-// });
+
+// PATCH /api/savedtrips/:id - Update a specific saved trip 
+router.patch('/:id', async (req, res) => {
+    const { id } = req.params; // Get trip ID from URL parameters
+    const updates = req.body; // Get the fields to update from the request body
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid Trip ID format.' });
+    }
+
+    // Prevent updating certain fields (like user, id, savedAt)
+    const allowedUpdates = ['notes', 'imagePath', 'price']; //  only allow these to be patched
+    const requestedUpdates = Object.keys(updates);
+    const isValidOperation = requestedUpdates.every(update => allowedUpdates.includes(update));
+
+    if (!isValidOperation) {
+        // Find which fields are not allowed
+        const invalidFields = requestedUpdates.filter(update => !allowedUpdates.includes(update));
+        return res.status(400).json({ error: `Invalid updates attempted! Cannot update fields: ${invalidFields.join(', ')}` });
+    }
+
+    try {
+        //  ensuring Mongoose schema validations run on update
+        const updatedTrip = await SavedTrip.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+
+        // Checking if trip exists
+        if (!updatedTrip) {
+            return res.status(404).json({ message: 'Saved trip not found.' });
+        }
+
+        res.status(200).json(updatedTrip); // Send back the updated trip
+
+    } catch (err) {
+        // Handling potential errors like Validation and DB connection
+        if (err.name === 'ValidationError') {
+            let errors = {};
+            Object.keys(err.errors).forEach((key) => {
+                errors[key] = err.errors[key].message;
+            });
+            return res.status(400).json({ message: 'Validation Error updating trip', errors: errors });
+        }
+        console.error("Error updating saved trip:", err.message);
+        res.status(500).json({ message: 'Server error while updating trip.' });
+    }
+});
 
 // // DELETE /api/savedtrips/:id - Delete a specific saved trip
 // router.delete('/:id', async (req, res) => {
