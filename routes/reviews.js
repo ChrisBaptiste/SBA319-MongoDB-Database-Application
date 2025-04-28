@@ -140,7 +140,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PATCH /api/reviews/:id - Update a review
-// IMPORTANT: route needs ownership check in the real app version to authorize changes to reviews!
+// IMPORTANT: route needs ownership check in the real app version to authorize changes for reviews!
 router.patch('/:id', async (req, res) => {
     const { id } = req.params; // Get review ID from URL
     const updates = req.body; // Get fields to update like rating and comments
@@ -208,6 +208,42 @@ router.patch('/:id', async (req, res) => {
         res.status(500).json({ message: 'Server error while updating review.' });
     }
 });
+
+
+// DELETE /api/reviews/:id - Delete a review
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params; // Getting review ID from URL
+
+    // Validating ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid Review ID format.' });
+    }
+
+    try {
+        // Finding the review first to check user's account ownership before deleting it.
+        const review = await Review.findById(id);
+
+        if (!review) {
+            return res.status(404).json({ message: 'Review not found.' });
+        }
+
+        // checking first if account belongs to user before authorazing the deletion of a review.
+        // const loggedInUserId = req.user.id; 
+        // if (review.user.toString() !== loggedInUserId) {
+        //     return res.status(403).json({ message: 'User not authorized to delete this review.' });
+        // }
+
+        // deleting the review
+        await Review.findByIdAndDelete(id);
+
+        res.status(200).json({ message: 'Review deleted successfully.' }); // Send success message
+
+    } catch (err) {
+        console.error("Error deleting review:", err.message);
+        res.status(500).json({ message: 'Server error while deleting review.' });
+    }
+});
+
 
 
 // --- Export Router ---
