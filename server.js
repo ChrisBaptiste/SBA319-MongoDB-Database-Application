@@ -40,6 +40,7 @@ app.get('/', (req, res) => {
 
 // --- TODO: API Routes ---
 app.use('/api/users', require('./routes/users'));
+app.use('/api/savedtrips', require('./routes/savedTrips.js'));
 // ... other API routes ...
 
 

@@ -93,11 +93,30 @@ router.get('/', async (req, res) => {
     }
 });
 
-// // GET /api/savedtrips/:id - Get a specific saved trip by its ID
-// router.get('/:id', async (req, res) => {
-//     // Read (one) logic here
-//     res.status(501).send('GET /api/savedtrips/:id not implemented yet'); // 501 Not Implemented
-// });
+
+//  GET /api/savedtrips/:id - Get a specific saved trip by its ID
+router.get('/:id', async (req, res) => {
+    const { id } = req.params; // Get trip ID from URL parameters
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid Trip ID format.' });
+    }
+
+    try {
+        const trip = await SavedTrip.findById(id); // Finding trips by its unique _id
+
+        // Checking if trip exists
+        if (!trip) {
+            return res.status(404).json({ message: 'Saved trip not found.' });
+        }
+        res.status(200).json(trip);
+
+    } catch (err) {
+        console.error("Error fetching single saved trip:", err.message);
+        res.status(500).json({ message: 'error while fetching trip.' });
+    }
+});
 
 // // PATCH /api/savedtrips/:id - Update a specific saved trip (e.g., add notes)
 // router.patch('/:id', async (req, res) => {
